@@ -1,2 +1,2 @@
 # order-book-simulator
-order book simulator for modeling market microstructure and testing trading strategies
+order book simulator (prototype) for modeling market microstructure and testing trade handlings
