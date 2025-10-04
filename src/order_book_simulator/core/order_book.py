@@ -2,6 +2,9 @@ from collections import deque
 from typing import Deque, Optional
 from uuid import uuid4
 from order_book_simulator.config import OrderRequest, Side
+from io import StringIO
+from rich.console import Console
+from rich.table import Table
 from sortedcontainers import SortedDict
 
 
@@ -90,32 +93,38 @@ class OrderBook:
         return self.asks.peekitem(0)[0]
 
     def __str__(self):
-        """Provides a string representation of the order book."""
-        book_str = "--- Order Book ---\n"
+        """Provides a string representation of the order book using rich.table.Table."""
+        console = Console(file=StringIO())
+        table = Table(show_header=True, header_style="bold magenta")
+        table.add_column("Bid Price", style="cyan", justify="right")
+        table.add_column("Bid Quantity", style="cyan", justify="right")
+        table.add_column("Ask Price", style="magenta", justify="right")
+        table.add_column("Ask Quantity", style="magenta", justify="right")
 
-        # Asks (sorted from high to low for display)
-        book_str += "Asks:\n"
-        if not self.asks:
-            book_str += "  (empty)\n"
-        else:
-            for price, orders in reversed(self.asks.items()):
-                total_quantity = sum(o.quantity for o in orders)
-                book_str += f"  Price: {price:.2f}, Quantity: {total_quantity}\n"
+        bids = [
+            (-neg_price, sum(o.quantity for o in orders))
+            for neg_price, orders in self.bids.items()
+        ]
+        asks = [
+            (price, sum(o.quantity for o in orders))
+            for price, orders in self.asks.items()
+        ]
 
-        book_str += "\n"
+        num_bids = len(bids)
+        num_asks = len(asks)
+        max_rows = max(num_bids, num_asks)
 
-        # Bids (sorted from high to low for display)
-        book_str += "Bids:\n"
-        if not self.bids:
-            book_str += "  (empty)\n"
-        else:
-            for neg_price, orders in self.bids.items():
-                price = -neg_price
-                total_quantity = sum(o.quantity for o in orders)
-                book_str += f"  Price: {price:.2f}, Quantity: {total_quantity}\n"
+        for i in range(max_rows):
+            bid_price, bid_qty = (
+                (f"{bids[i][0]:.2f}", str(bids[i][1])) if i < num_bids else ("", "")
+            )
+            ask_price, ask_qty = (
+                (f"{asks[i][0]:.2f}", str(asks[i][1])) if i < num_asks else ("", "")
+            )
+            table.add_row(bid_price, bid_qty, ask_price, ask_qty)
 
-        book_str += "------------------\n"
-        return book_str
+        console.print(table)
+        return console.file.getvalue()
 
 
 if __name__ == "__main__":
