@@ -11,6 +11,7 @@ class Side(Enum):
     SELL = "sell"
 
 
+# TODO: think about the scenarios where this can be used
 class Priority(IntEnum):
     High = 1
     Medium = 2
@@ -26,16 +27,20 @@ class OrderRequest(BaseModel):
 
     # Universally Unique Identifier, usually represented by 32-character hexadecimal string
     order_id: UUID = Field(
-        default_factory=uuid4
-    )  # default_factory provides a callable to generate the default value
-    timestamp: float = Field(default_factory=time.time)
+        default_factory=uuid4,
+        description="The unique identifier for this specific order.",
+    )
+    timestamp: float = Field(
+        default_factory=time.time,
+        description="The timestamp of when the order is created.",
+    )
 
     # Compulsory, must be provided by the user
-    trader_id: UUID
-    side: Side
-    priority: Priority
-    price: float = Field(gt=0)  # Price must be greater than 0
-    quantity: int = Field(gt=0)  # Quantity must be greater than 0
+    trader_id: UUID = Field(description="The ID of the trader placing the order.")
+    side: Side = Field(description="The side of the order (buy or sell).")
+    priority: Priority = Field(description="The priority of the order.")
+    price: float = Field(gt=0, description="The price of the order.")
+    quantity: int = Field(gt=0, description="The quantity of the order.")
 
 
 if __name__ == "__main__":
