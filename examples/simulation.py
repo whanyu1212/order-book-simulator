@@ -25,7 +25,7 @@ if __name__ == "__main__":
             side=Side.SELL,
             price=101.0,
             quantity=100,
-            priority=Priority.Medium,
+            priority=Priority.MEDIUM,
         )
     )
     matching_engine.process_order(
@@ -34,7 +34,7 @@ if __name__ == "__main__":
             side=Side.SELL,
             price=102.0,
             quantity=50,
-            priority=Priority.Medium,
+            priority=Priority.MEDIUM,
         )
     )
 
@@ -45,7 +45,7 @@ if __name__ == "__main__":
             side=Side.BUY,
             price=99.0,
             quantity=75,
-            priority=Priority.Medium,
+            priority=Priority.MEDIUM,
         )
     )
     matching_engine.process_order(
@@ -54,7 +54,7 @@ if __name__ == "__main__":
             side=Side.BUY,
             price=98.0,
             quantity=100,
-            priority=Priority.Medium,
+            priority=Priority.MEDIUM,
         )
     )
 
@@ -69,7 +69,7 @@ if __name__ == "__main__":
         side=Side.BUY,
         price=101.5,
         quantity=125,
-        priority=Priority.Medium,
+        priority=Priority.MEDIUM,
     )
 
     print(

@@ -13,9 +13,9 @@ class Side(Enum):
 
 # TODO: think about the scenarios where this can be used
 class Priority(IntEnum):
-    High = 1
-    Medium = 2
-    Low = 3
+    HIGH = 1
+    MEDIUM = 2
+    LOW = 3
 
 
 # * Remark: The primary benefits of using pydantic basemodel here instead of dataclass
@@ -46,7 +46,7 @@ class OrderRequest(BaseModel):
 if __name__ == "__main__":
     trader_id = uuid4()
     side = Side.BUY
-    priority = Priority.High
+    priority = Priority.HIGH
     price = 100
     quantity = 1
     new_order = OrderRequest(
