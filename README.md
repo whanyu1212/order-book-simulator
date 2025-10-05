@@ -10,10 +10,12 @@ This repository contains proof-of-concept implementation of an Order Book Simula
 - [📖 Overview](#-overview)
 - [🚀 Getting Started](#-getting-started)
 - [🧩 Components](#-components)
-- [🏃‍♀️ Running the Simulation](#️-running-the-simulation)
+- [🚀 Running the API](#-running-the-api)
+- [📚 API Documentation (Swagger UI)](#-api-documentation-swagger-ui)
+- [🏃‍♀️ Running the Legacy Simulation](#️-running-the-legacy-simulation)
 
 ### 📖 Overview
-This project is a proof-of-concept implementation of an order book simulator, focusing on limit orders. It simulates the core functionalities of a financial market order book, including adding and canceling buy and sell limit orders.
+This project is a proof-of-concept implementation of an order book simulator, focusing on limit orders. It simulates the core functionalities of a financial market order book, including adding and canceling buy and sell limit orders. It also provides a FastAPI interface to interact with the order book.
 
 ---
 
@@ -78,9 +80,50 @@ This simulator is built around a few core components: `OrderRequest`, `OrderBook
   -  It takes an `OrderRequest` and tries to match it against existing orders in the `OrderBook`.
   -  If a match is found, it generates a `Trade` and updates the `OrderBook`.
 
-### 🏃‍♀️ Running the Simulation
-To see how these components work together, you can run the example simulation script:
+### 🚀 Running the API
+The primary way to interact with the simulator is through the FastAPI web server. Helper scripts are provided in the `scripts` directory.
+
+1.  **Make Scripts Executable:**
+    Before running the scripts for the first time, you need to give them execute permissions. The `chmod +x` command is used in Unix-like systems (macOS, Linux) to make a file executable.
+    ```bash
+    chmod +x scripts/run.sh
+    chmod +x scripts/simulate.sh
+    ```
+
+2.  **Start the Server:**
+    Open a terminal and run the following script to start the Uvicorn server.
+    ```bash
+    ./scripts/run.sh
+    ```
+    The server will be running on `http://127.0.0.1:8000`. Leave this terminal running.
+
+3.  **Run the Simulation Script:**
+    Open a **second terminal** and run the simulation script. This script uses `curl` to send HTTP requests to the running server, simulating the registration of traders and the submission of orders.
+    > **What is `curl`?** `curl` (Client for URL) is a command-line tool used to transfer data to or from a server. It's a powerful way to interact with and test APIs directly from the terminal.
+    ```bash
+    ./scripts/simulate.sh
+    ```
+    You will see the output of the API calls, including trader IDs and the state of the order book before and after a trade.
+
+---
+
+### 📚 API Documentation (Swagger UI)
+One of the key advantages of FastAPI is its automatically generated interactive documentation.
+
+Once the server is running (using `./scripts/run.sh`), you can access the Swagger UI by opening your web browser and navigating to:
+
+[**http://127.0.0.1:8000/docs**](http://127.0.0.1:8000/docs)
+
+This page allows you to:
+-   Visualize all the API endpoints.
+-   See the expected request and response models.
+-   Interact with the API directly from your browser.
+
+---
+
+### 🏃‍♀️ Running the Legacy Simulation
+To see the original non-API components work together, you can run the example simulation script:
 ```bash
 python -m examples.simulation
 ```
-This will simulate a series of order requests and print out the resulting trades and the final state of the order book.
+This will simulate a series of order requests and print out the resulting trades and the final state of the order book directly in your console.
