@@ -1,7 +1,6 @@
 from typing import List
-from order_book_simulator.config.trade import Trade
-from order_book_simulator.config import OrderRequest
-from order_book_simulator.core.order_book import OrderBook, Side
+from order_book_simulator.config import OrderRequest, Trade, Priority, Side
+from order_book_simulator.core import OrderBook
 
 
 class MatchingEngine:
@@ -12,16 +11,18 @@ class MatchingEngine:
     def __init__(self, order_book: OrderBook):
         self.order_book = order_book
 
-    def process_order(self, order: OrderRequest) -> List[Trade]:
+    def process_order(self, order_request: OrderRequest) -> List[Trade]:
         """Process the order depending on its side
 
         Args:
-            order (OrderRequest): order request (BUY/SELL)
+            order_request (OrderRequest): order request (BUY/SELL)
 
         Returns:
             List[Trade]: a list of matched trades
         """
-        taker_order = order
+        # Convert the incoming request into a full Order object, which will
+        # auto-generate an order_id and timestamp.
+        taker_order = OrderRequest(**order_request.model_dump())
         trades: List[Trade] = []
 
         if taker_order.side == Side.BUY:
