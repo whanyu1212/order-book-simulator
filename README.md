@@ -10,7 +10,7 @@ This repository contains proof-of-concept implementation of an Order Book Simula
 - [📖 Overview](#-overview)
 - [🚀 Getting Started](#-getting-started)
 - [🧩 Components](#-components)
-- [🚀 Running the API](#-running-the-api)
+- [🚀 Running the API and Trade Simulation](#-running-the-api-and-trade-simulation)
 - [📚 API Documentation (Swagger UI)](#-api-documentation-swagger-ui)
 - [🏃‍♀️ Running the Legacy Simulation](#️-running-the-legacy-simulation)
 
@@ -80,30 +80,42 @@ This simulator is built around a few core components: `OrderRequest`, `OrderBook
   -  It takes an `OrderRequest` and tries to match it against existing orders in the `OrderBook`.
   -  If a match is found, it generates a `Trade` and updates the `OrderBook`.
 
-### 🚀 Running the API
+- **`WebSocket Trade Feed`**: A WebSocket endpoint (`/ws/trades`) provides a real-time feed of executed trades.
+  - The `ConnectionManager` class manages active WebSocket connections.
+  - When the `MatchingEngine` executes a trade, it broadcasts the trade details to all connected clients.
+
+### 🚀 Running the API and Trade Simulation
 The primary way to interact with the simulator is through the FastAPI web server. Helper scripts are provided in the `scripts` directory.
 
 1.  **Make Scripts Executable:**
-    Before running the scripts for the first time, you need to give them execute permissions. The `chmod +x` command is used in Unix-like systems (macOS, Linux) to make a file executable.
+    Before running the scripts for the first time, you need to give them execute permissions.
     ```bash
     chmod +x scripts/run.sh
     chmod +x scripts/simulate.sh
+    chmod +x scripts/listen_trades.py
     ```
 
-2.  **Start the Server:**
+2.  **Start the Server (Terminal 1):**
     Open a terminal and run the following script to start the Uvicorn server.
     ```bash
     ./scripts/run.sh
     ```
     The server will be running on `http://127.0.0.1:8000`. Leave this terminal running.
 
-3.  **Run the Simulation Script:**
-    Open a **second terminal** and run the simulation script. This script uses `curl` to send HTTP requests to the running server, simulating the registration of traders and the submission of orders.
+3.  **Listen for Trades (Terminal 2):**
+    Open a **second terminal** and run the `listen_trades.py` script. This script connects to the WebSocket endpoint and will print any trades that occur in real-time.
+    ```bash
+    python scripts/listen_trades.py
+    ```
+    Keep this terminal visible so you can see the trade notifications.
+
+4.  **Run the Simulation Script (Terminal 3):**
+    Open a **third terminal** and run the simulation script. This script uses `curl` to send HTTP requests to the server, which will trigger trades.
     > **What is `curl`?** `curl` (Client for URL) is a command-line tool used to transfer data to or from a server. It's a powerful way to interact with and test APIs directly from the terminal.
     ```bash
     ./scripts/simulate.sh
     ```
-    You will see the output of the API calls, including trader IDs and the state of the order book before and after a trade.
+    As soon as you run this, you will see the trade appear in the second terminal (the one running `listen_trades.py`).
 
 ---
 
