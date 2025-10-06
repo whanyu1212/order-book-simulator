@@ -76,8 +76,8 @@ class OrderBook:
         if not self.bids:
             return None
         # The best bid is the highest price, which is the last key in the bids SortedDict
-        # (since keys are negative prices, the "last" is the smallest negative, i.e., highest price).
-        return -self.bids.peekitem(-1)[0]
+        # (since keys are negative prices, the "first" is the smallest negative, i.e., highest price).
+        return -self.bids.peekitem(0)[0]
 
     @property
     def best_ask(self) -> Optional[float]:
