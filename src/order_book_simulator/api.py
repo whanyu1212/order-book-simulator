@@ -1,12 +1,14 @@
+import asyncio
 import threading
 from typing import List, Dict
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
 from order_book_simulator.config import OrderRequest, Trade
 from order_book_simulator.core import OrderBook, MatchingEngine
+from order_book_simulator.websocket import ConnectionManager
 
 
 # ! sorted dict is not a standard data type that can be
@@ -33,7 +35,10 @@ class TraderRequest(BaseModel):
 class AppState:
     def __init__(self):
         self.order_book = OrderBook()
-        self.matching_engine = MatchingEngine(self.order_book)
+        self.connection_manager = ConnectionManager()
+        self.matching_engine = MatchingEngine(
+            self.order_book, self.connection_manager, asyncio.get_event_loop()
+        )
         self.traders_db: Dict[str, UUID] = {}
         self.lock = threading.Lock()
 
@@ -126,3 +131,23 @@ def get_order_book(state: AppState = Depends(get_app_state)) -> OrderBookRespons
             ],
         }
     return OrderBookResponse(**book_state)
+
+
+@router.websocket("/ws/trades", name="Trade Updates")
+async def websocket_endpoint(
+    websocket: WebSocket, state: AppState = Depends(get_app_state)
+):
+    """WebSocket endpoint for receiving trade updates.
+
+    Args:
+        websocket (WebSocket): The WebSocket connection.
+        state (AppState, optional): The application state. Defaults to Depends(get_app_state).
+    """
+    await state.connection_manager.connect(websocket)
+    try:
+        while True:
+            # The server will listen for messages from the client, though in a simple broadcast-only
+            # scenario, you might not need to process incoming messages.
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        state.connection_manager.disconnect(websocket)

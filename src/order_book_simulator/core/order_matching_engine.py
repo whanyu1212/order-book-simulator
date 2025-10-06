@@ -1,6 +1,8 @@
+import asyncio
 from typing import List
-from order_book_simulator.config import OrderRequest, Trade, Priority, Side
 from order_book_simulator.core import OrderBook
+from order_book_simulator.websocket import ConnectionManager
+from order_book_simulator.config import OrderRequest, Trade, Priority, Side
 
 
 class MatchingEngine:
@@ -8,8 +10,15 @@ class MatchingEngine:
     The MatchingEngine class contains the core logic for order matching.
     """
 
-    def __init__(self, order_book: OrderBook):
+    def __init__(
+        self,
+        order_book: OrderBook,
+        connection_manager: ConnectionManager,
+        loop: asyncio.AbstractEventLoop,
+    ):
         self.order_book = order_book
+        self.connection_manager = connection_manager
+        self.loop = loop
 
     def process_order(self, order_request: OrderRequest) -> List[Trade]:
         """Process the order depending on its side
@@ -72,6 +81,7 @@ class MatchingEngine:
                 quantity=trade_quantity,
                 taker_side=taker_order.side,
             )
+            self._broadcast_trades(trade)
             trades.append(trade)
 
             taker_order.quantity -= trade_quantity
@@ -115,6 +125,7 @@ class MatchingEngine:
                 quantity=trade_quantity,
                 taker_side=taker_order.side,
             )
+            self._broadcast_trades(trade)
             trades.append(trade)
 
             taker_order.quantity -= trade_quantity
@@ -124,3 +135,14 @@ class MatchingEngine:
                 self.order_book.remove_order(maker_order)
 
         return trades
+
+    def _broadcast_trades(self, trade: Trade) -> None:
+        """Broadcasts the list of trades to all connected WebSocket clients.
+
+        Args:
+            trade (Trade): The trade information to broadcast.
+        """
+        asyncio.run_coroutine_threadsafe(
+            self.connection_manager.broadcast_trade(trade),
+            self.loop,
+        )
