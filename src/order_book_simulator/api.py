@@ -1,13 +1,13 @@
 import asyncio
 import threading
 from typing import List, Dict
-from uuid import UUID, uuid4
-
-from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
+from uuid import UUID
+from decimal import Decimal
+from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, HTTPException
 from pydantic import BaseModel
 
 from order_book_simulator.config import OrderRequest, Trade
-from order_book_simulator.core import OrderBook, MatchingEngine
+from order_book_simulator.core import OrderBook, MatchingEngine, TraderAccountManager
 from order_book_simulator.websocket import ConnectionManager
 
 
@@ -31,6 +31,13 @@ class TraderRequest(BaseModel):
     username: str
 
 
+class AccountResponse(BaseModel):
+    trader_id: UUID
+    username: str
+    balance: Decimal
+    active: bool
+
+
 # Application state
 class AppState:
     def __init__(self):
@@ -39,7 +46,7 @@ class AppState:
         self.matching_engine = MatchingEngine(
             self.order_book, self.connection_manager, asyncio.get_event_loop()
         )
-        self.traders_db: Dict[str, UUID] = {}
+        self.account_manager = TraderAccountManager()
         self.lock = threading.Lock()
 
 
@@ -55,29 +62,61 @@ router = APIRouter()
 # === Endpoints === #
 
 
-@router.post("/traders", response_model=str, tags=["Traders"])
+@router.post("/traders", response_model=AccountResponse, tags=["Traders"])
 def create_trader(
     trader_request: TraderRequest, state: AppState = Depends(get_app_state)
-) -> str:
-    """Registers a new trader. If the username already exists, it returns their
-    existing ID. Otherwise, it creates a new trader and returns their new ID.
+) -> AccountResponse:
+    """Register a new trader with initial balance.
 
     Args:
-        trader_request (TraderRequest): trader request schema
-        state (AppState, optional): Defaults to Depends(get_app_state).
+        trader_request (TraderRequest): Registration request with username
+        state (AppState): Application state
 
     Returns:
-        str: trader id in string
+        AccountResponse: New trader account details
+
+    Raises:
+        HTTPException: If username already exists
     """
+    try:
+        with state.lock:
+            trader_id = state.account_manager.register_trader(trader_request.username)
+            account = state.account_manager.get_account(trader_id)
+            return AccountResponse(
+                trader_id=account.trader_id,
+                username=account.username,
+                balance=account.balance,
+                active=account.active,
+            )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-    username = trader_request.username
-    if username in state.traders_db:
-        return str(state.traders_db[username])
 
-    new_trader_id = uuid4()
-    state.traders_db[username] = new_trader_id
-    print(f"Registered new trader: '{username}' with ID: {new_trader_id}")
-    return str(new_trader_id)
+@router.get("/traders/{trader_id}", response_model=AccountResponse, tags=["Traders"])
+def get_trader_account(
+    trader_id: UUID, state: AppState = Depends(get_app_state)
+) -> AccountResponse:
+    """Get trader account details.
+
+    Args:
+        trader_id (UUID): Trader's unique identifier
+        state (AppState): Application state
+
+    Returns:
+        AccountResponse: Trader account details
+
+    Raises:
+        HTTPException: If trader not found
+    """
+    account = state.account_manager.get_account(trader_id)
+    if not account:
+        raise HTTPException(status_code=404, detail="Trader not found")
+    return AccountResponse(
+        trader_id=account.trader_id,
+        username=account.username,
+        balance=account.balance,
+        active=account.active,
+    )
 
 
 @router.post("/orders", response_model=List[Trade], tags=["Orders"])
@@ -91,20 +130,48 @@ def submit_order(
         state (AppState, optional): Defaults to Depends(get_app_state).
 
     Raises:
-        HTTPException: error 404
+        HTTPException: If trader not found or insufficient funds
 
     Returns:
         List[Trade]: list of trades
     """
-    if order_request.trader_id not in state.traders_db.values():
+    # Check if trader exists and has sufficient funds
+    account = state.account_manager.get_account(order_request.trader_id)
+    if not account:
         raise HTTPException(
-            status_code=404,
-            detail="Trader ID not found. Please register first via the /traders endpoint.",
+            status_code=404, detail="Trader not found. Please register first."
         )
 
+    if not account.active:
+        raise HTTPException(status_code=400, detail="Account is deactivated")
+
+    # For sell orders, check if trader has sufficient assets (to be implemented)
+    # For buy orders, check if trader has sufficient funds
+    if order_request.side == "BUY":
+        required_funds = Decimal(str(order_request.price * order_request.quantity))
+        if account.balance < required_funds:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Insufficient funds. Required: {required_funds}, Available: {account.balance}",
+            )
+
     with state.lock:
-        # Pass the request directly; the engine should be responsible for creating the Order object.
+        # Process the order and get executed trades
         executed_trades = state.matching_engine.process_order(order_request)
+
+        # Update balances based on executed trades
+        for trade in executed_trades:
+            if trade.trader_id == order_request.trader_id:
+                # If this trader is the buyer, deduct funds
+                if order_request.side == "BUY":
+                    state.account_manager.update_balance(
+                        trade.trader_id, -Decimal(str(trade.price * trade.quantity))
+                    )
+                # If this trader is the seller, add funds
+                else:
+                    state.account_manager.update_balance(
+                        trade.trader_id, Decimal(str(trade.price * trade.quantity))
+                    )
 
     return executed_trades
 

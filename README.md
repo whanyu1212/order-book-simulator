@@ -13,6 +13,9 @@ This repository contains proof-of-concept implementation of an Order Book Simula
 - [🚀 Running the API and Trade Simulation](#-running-the-api-and-trade-simulation)
 - [📚 API Documentation (Swagger UI)](#-api-documentation-swagger-ui)
 - [🏃‍♀️ Running the Legacy Simulation](#️-running-the-legacy-simulation)
+- [📝 Learning Notes](#-learning-notes)
+  - [Financial Computing Best Practices](#financial-computing-best-practices)
+    - [Using Decimal Instead of Float for Financial Calculations](#using-decimal-instead-of-float-for-financial-calculations)
 
 ### 📖 Overview
 This project is a proof-of-concept implementation of an order book simulator, focusing on limit orders. It simulates the core functionalities of a financial market order book, including adding and canceling buy and sell limit orders. It also provides a FastAPI interface to interact with the order book.
@@ -138,4 +141,52 @@ To see the original non-API components work together, you can run the example si
 ```bash
 python -m examples.simulation
 ```
+
+---
+
+### 📝 Learning Notes
+
+#### Financial Computing Best Practices
+
+##### Using Decimal Instead of Float for Financial Calculations
+In this project, we use Python's `Decimal` type instead of `float` for all monetary values and calculations. Here's why this is crucial for financial applications:
+
+```python
+# Processing 100,000 transactions with 1 cent fee each
+small_fee = 0.01  # 1 cent fee
+num_transactions = 100000
+
+# Using float - accumulates errors
+float_total = 0
+for _ in range(num_transactions):
+    float_total += small_fee
+
+# Using Decimal - maintains precision
+from decimal import Decimal
+decimal_total = Decimal('0')
+for _ in range(num_transactions):
+    decimal_total += Decimal('0.01')
+
+print(f"Float total fees: ${float_total}")         # 999.9999999999091
+print(f"Decimal total fees: ${decimal_total}")     # 1000.00
+print(f"Difference in cents: {(decimal_total - Decimal(str(float_total))) * 100}")
+```
+
+This example demonstrates why using `Decimal` is crucial in our order book simulator:
+- Small rounding errors accumulate in float calculations
+- With high-volume trading, these errors can become significant
+- Financial calculations require exact precision, especially with money
+- Even a fraction of a cent difference can matter when scaled up
+- Regulatory compliance often requires exact decimal arithmetic
+
+This precision is essential in our order book simulator because:
+- We're handling monetary values
+- Calculations need to be exact for trading
+- Account balances must be precise
+- Financial auditing requires exact arithmetic
+- Multiple transactions should not lead to rounding errors
+
+---
+
+More learning notes will be added as we implement new features and encounter interesting technical concepts.
 This will simulate a series of order requests and print out the resulting trades and the final state of the order book directly in your console.
