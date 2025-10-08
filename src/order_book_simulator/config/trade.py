@@ -15,10 +15,15 @@ class Trade(BaseModel):
     maker_order_id: UUID = Field(
         description="The ID of the order that was resting on the book (providing liquidity)."
     )
+    maker_trader_id: UUID = Field(
+        description="The ID of the trader who placed the maker order."
+    )
     taker_order_id: UUID = Field(
         description="The ID of the incoming order that executed against the maker (taking liquidity)."
     )
-
+    taker_trader_id: UUID = Field(
+        description="The ID of the trader who placed the taker order."
+    )
     price: float = Field(
         description="The price at which the trade was executed. This is always the price of the maker order."
     )
