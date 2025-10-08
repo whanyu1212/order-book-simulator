@@ -4,6 +4,9 @@ from decimal import Decimal
 from typing import Any
 
 
+# Since it is internal data structure and we are not receiving this piece of data
+# from external sources, we can use dataclass for simplicity. It is more lightweight
+# than pydantic BaseModel and does not require validation overhead.
 @dataclass
 class TraderAccount:
     """Represents a trader's account with their balance and status"""
