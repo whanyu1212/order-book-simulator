@@ -17,11 +17,15 @@ ALICE_ID=$(curl -s -X POST "http://127.0.0.1:8000/traders" -H "Content-Type: app
 BOB_ID=$(curl -s -X POST "http://127.0.0.1:8000/traders" -H "Content-Type: application/json" -d '{"username": "bob"}' | jq -r '.trader_id')
 CHARLIE_ID=$(curl -s -X POST "http://127.0.0.1:8000/traders" -H "Content-Type: application/json" -d '{"username": "charlie"}' | jq -r '.trader_id')
 DAVID_ID=$(curl -s -X POST "http://127.0.0.1:8000/traders" -H "Content-Type: application/json" -d '{"username": "david"}' | jq -r '.trader_id')
+EVE_ID=$(curl -s -X POST "http://127.0.0.1:8000/traders" -H "Content-Type: application/json" -d '{"username": "eve"}' | jq -r '.trader_id')
+FRANK_ID=$(curl -s -X POST "http://127.0.0.1:8000/traders" -H "Content-Type: application/json" -d '{"username": "frank"}' | jq -r '.trader_id')
 
 echo "Registered Alice with ID: $ALICE_ID"
 echo "Registered Bob with ID: $BOB_ID"
 echo "Registered Charlie with ID: $CHARLIE_ID"
 echo "Registered David with ID: $DAVID_ID"
+echo "Registered Eve with ID: $EVE_ID"
+echo "Registered Frank with ID: $FRANK_ID"
 
 print_message "Building the Order Book"
 
@@ -33,6 +37,9 @@ curl -X POST "http://127.0.0.1:8000/orders" -H "Content-Type: application/json" 
 
 # Charlie places another buy order
 curl -X POST "http://127.0.0.1:8000/orders" -H "Content-Type: application/json" -d '{"trader_id": "'"$CHARLIE_ID"'", "side": "buy", "price": 101.0, "quantity": 8, "priority": 1}' | jq
+
+# Eve places a sell order
+curl -X POST "http://127.0.0.1:8000/orders" -H "Content-Type: application/json" -d '{"trader_id": "'"$EVE_ID"'", "side": "sell", "price": 103.0, "quantity": 12, "priority": 1}' | jq
 
 print_message "Current Order Book"
 curl -s http://127.0.0.1:8000/orderbook | jq
@@ -50,6 +57,21 @@ curl -X POST "http://127.0.0.1:8000/orders" \
 }' | jq
 
 print_message "Order Book after David's sell order"
+curl -s http://127.0.0.1:8000/orderbook | jq
+
+print_message "Frank places a buy order that partially fills Bob's sell order"
+# This will match part of Bob's sell order at 102.0
+curl -X POST "http://127.0.0.1:8000/orders" \
+-H "Content-Type: application/json" \
+-d '{
+  "trader_id": "'"$FRANK_ID"'",
+  "side": "buy",
+  "price": 102.0,
+  "quantity": 3,
+  "priority": 1
+}' | jq
+
+print_message "Order Book after Frank's partial fill"
 curl -s http://127.0.0.1:8000/orderbook | jq
 
 print_message "Verifying Database Records"
@@ -72,5 +94,9 @@ echo "Charlie's Account:"
 curl -s "http://127.0.0.1:8000/traders/$CHARLIE_ID" | jq
 echo "David's Account:"
 curl -s "http://127.0.0.1:8000/traders/$DAVID_ID" | jq
+echo "Eve's Account:"
+curl -s "http://127.0.0.1:8000/traders/$EVE_ID" | jq
+echo "Frank's Account:"
+curl -s "http://127.0.0.1:8000/traders/$FRANK_ID" | jq
 
 echo ""
