@@ -325,41 +325,6 @@ def get_order_book(state: AppState = Depends(get_app_state)) -> OrderBookRespons
     return OrderBookResponse(**book_state)
 
 
-@router.get("/traders/{trader_id}/orders", tags=["Orders"])
-def get_trader_orders(
-    trader_id: UUID, state: AppState = Depends(get_app_state)
-) -> List[dict]:
-    """Get active orders for a trader
-
-    Args:
-        trader_id (UUID): The trader's ID
-        state (AppState): Application state
-
-    Returns:
-        List[dict]: List of active orders
-    """
-    from order_book_simulator.database.session import get_db
-    from order_book_simulator.database.models import DBOrder
-
-    with get_db() as db:
-        orders = (
-            db.query(DBOrder)
-            .filter(DBOrder.trader_id == str(trader_id), DBOrder.status == "ACTIVE")
-            .all()
-        )
-
-        return [
-            {
-                "order_id": order.order_id,
-                "side": order.side,
-                "price": float(order.price),
-                "quantity": float(order.remaining_quantity),
-                "timestamp": order.timestamp.timestamp(),
-            }
-            for order in orders
-        ]
-
-
 @router.get("/orders", tags=["Orders"])
 def get_all_orders(state: AppState = Depends(get_app_state)) -> List[dict]:
     """Get all orders from the database.
