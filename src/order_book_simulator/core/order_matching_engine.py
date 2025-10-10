@@ -29,20 +29,17 @@ class MatchingEngine:
         Returns:
             List[Trade]: a list of matched trades
         """
-        # Convert the incoming request into a full Order object, which will
-        # auto-generate an order_id and timestamp.
-        taker_order = OrderRequest(**order_request.model_dump())
         trades: List[Trade] = []
 
-        if taker_order.side == Side.BUY:
-            trades = self._match_buy_order(taker_order)
+        if order_request.side == Side.BUY:
+            trades = self._match_buy_order(order_request)
         else:  # Side.SELL
-            trades = self._match_sell_order(taker_order)
+            trades = self._match_sell_order(order_request)
 
         # If the taker order has any remaining quantity after matching,
         # it is added to the order book.
-        if taker_order.quantity > 0:
-            self.order_book.add_order(taker_order)
+        if order_request.quantity > 0:
+            self.order_book.add_order(order_request)
 
         return trades
 
@@ -69,14 +66,25 @@ class MatchingEngine:
 
             orders_at_best_ask = self.order_book.asks[best_ask_price]
 
-            maker_order = orders_at_best_ask[0]  # Oldest order is at the front
+            # Find the first order from a different trader
+            maker_order = None
+            for order in orders_at_best_ask:
+                if order.trader_id != taker_order.trader_id:
+                    maker_order = order
+                    break
+
+            # If no suitable maker order is found, stop matching
+            if maker_order is None:
+                break
 
             # The quantity that can be filled per maker
             trade_quantity = min(taker_order.quantity, maker_order.quantity)
 
             trade = Trade(
                 maker_order_id=maker_order.order_id,
+                maker_trader_id=maker_order.trader_id,
                 taker_order_id=taker_order.order_id,
+                taker_trader_id=taker_order.trader_id,
                 price=maker_order.price,
                 quantity=trade_quantity,
                 taker_side=taker_order.side,
@@ -114,13 +122,24 @@ class MatchingEngine:
 
             orders_at_best_bid = self.order_book.bids[-best_bid_price]
 
-            maker_order = orders_at_best_bid[0]  # Oldest order is at the front
+            # Find the first order from a different trader
+            maker_order = None
+            for order in orders_at_best_bid:
+                if order.trader_id != taker_order.trader_id:
+                    maker_order = order
+                    break
+
+            # If no suitable maker order is found, stop matching
+            if maker_order is None:
+                break
 
             trade_quantity = min(taker_order.quantity, maker_order.quantity)
 
             trade = Trade(
                 maker_order_id=maker_order.order_id,
+                maker_trader_id=maker_order.trader_id,
                 taker_order_id=taker_order.order_id,
+                taker_trader_id=taker_order.trader_id,
                 price=maker_order.price,
                 quantity=trade_quantity,
                 taker_side=taker_order.side,
