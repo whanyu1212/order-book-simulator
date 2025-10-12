@@ -92,6 +92,32 @@ class OrderBook:
         # The best ask is the lowest price, which is the first key in the asks SortedDict.
         return self.asks.peekitem(0)[0]
 
+    def get_best_bid_volume(self) -> Optional[int]:
+        """Get the total quantity at the best bid price.
+
+        Returns:
+            Optional[int]: total quantity at the best bid price
+            or None if no bids exist
+        """
+        if not self.bids:
+            return None
+        # peekitem(0) gets the first item (highest bid price)
+        best_bid_orders = self.bids.peekitem(0)[1]
+        return sum(order.quantity for order in best_bid_orders)
+
+    def get_best_ask_volume(self) -> Optional[int]:
+        """Get the total quantity at the best ask price.
+
+        Returns:
+            Optional[int]: total quantity at the best ask price
+            or None if no asks exist
+        """
+        if not self.asks:
+            return None
+        # peekitem(0) gets the first item (lowest ask price)
+        best_ask_orders = self.asks.peekitem(0)[1]
+        return sum(order.quantity for order in best_ask_orders)
+
     def __str__(self):
         """Provides a string representation of the order book using rich.table.Table."""
         console = Console(file=StringIO())

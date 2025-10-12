@@ -1,5 +1,6 @@
 import asyncio
-from typing import List
+from typing import List, Optional
+from order_book_simulator.analysis.metrics import MetricsCalculator
 from order_book_simulator.core import OrderBook
 from order_book_simulator.websocket import ConnectionManager
 from order_book_simulator.config import OrderRequest, Trade, Priority, Side
@@ -15,10 +16,12 @@ class MatchingEngine:
         order_book: OrderBook,
         connection_manager: ConnectionManager,
         loop: asyncio.AbstractEventLoop,
+        metrics_calculator: Optional[MetricsCalculator] = None,
     ):
         self.order_book = order_book
         self.connection_manager = connection_manager
         self.loop = loop
+        self.metrics_calculator = metrics_calculator
 
     def process_order(self, order_request: OrderRequest) -> List[Trade]:
         """Process the order depending on its side
@@ -40,6 +43,8 @@ class MatchingEngine:
         # it is added to the order book.
         if order_request.quantity > 0:
             self.order_book.add_order(order_request)
+            if self.metrics_calculator:
+                self.metrics_calculator.take_snapshot(order_request.timestamp)
 
         return trades
 
@@ -97,6 +102,8 @@ class MatchingEngine:
 
             if maker_order.quantity == 0:
                 self.order_book.remove_order(maker_order)
+                if self.metrics_calculator:
+                    self.metrics_calculator.take_snapshot(maker_order.timestamp)
 
         return trades
 
@@ -152,6 +159,8 @@ class MatchingEngine:
 
             if maker_order.quantity == 0:
                 self.order_book.remove_order(maker_order)
+                if self.metrics_calculator:
+                    self.metrics_calculator.take_snapshot(maker_order.timestamp)
 
         return trades
 
