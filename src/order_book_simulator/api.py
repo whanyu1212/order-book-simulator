@@ -10,6 +10,7 @@ from order_book_simulator.config import OrderRequest, Trade
 from order_book_simulator.config.order_request import Side
 from order_book_simulator.core import OrderBook, MatchingEngine, TraderAccountManager
 from order_book_simulator.websocket import ConnectionManager
+from order_book_simulator.analysis.metrics import MetricsCalculator
 
 
 # ! sorted dict is not a standard data type that can be
@@ -44,8 +45,12 @@ class AppState:
     def __init__(self):
         self.order_book = OrderBook()
         self.connection_manager = ConnectionManager()
+        self.metrics_calculator = MetricsCalculator(self.order_book, tick_size=0.01)
         self.matching_engine = MatchingEngine(
-            self.order_book, self.connection_manager, asyncio.get_event_loop()
+            self.order_book,
+            self.connection_manager,
+            asyncio.get_event_loop(),
+            self.metrics_calculator,
         )
         self.account_manager = TraderAccountManager()
         self.lock = threading.Lock()
