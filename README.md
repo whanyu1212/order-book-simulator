@@ -52,40 +52,26 @@ This repository uses `Poetry` for dependency management.
 ---
 
 ### 🧩 Components
-This simulator is built around a few core components: `OrderRequest`, `OrderBook`, `Trade`, and `MatchingEngine`.
+This simulator is built around a few core components, each with a specific responsibility. The main components are organized into the following modules:
 
-- **`OrderRequest`**: This is a data class (using Pydantic) that represents a single order submitted to the book. It contains all the necessary information for an order, such as:
-  - `order_id`: A unique identifier for the order.
-  - `trader_id`: The identifier of the trader placing the order.
-  - `side`: Whether the order is a `BUY` or `SELL`.
-  - `price`: The price at which the trader is willing to buy or sell.
-  - `quantity`: The amount of the asset to be traded.
-  - `timestamp`: The time the order was created.
+- **`config`**: This module contains the data structures for the application, including `OrderRequest`, `Trade`, and `Account`. These data classes are defined using Pydantic for data validation and serialization.
 
-- **`OrderBook`**: This class is the heart of the simulator. It manages the collections of buy (bids) and sell (asks) orders.
-  - It uses `SortedDict` from the `sortedcontainers` library to efficiently store and sort orders by price.
-  - Bids are sorted from highest to lowest price, while asks are sorted from lowest to highest.
-  - It provides methods to add new orders, cancel existing ones, and retrieve the best bid and ask prices.
+- **`core`**: This module contains the main business logic of the order book simulator. It includes:
+  - `OrderBook`: Manages the collections of buy (bids) and sell (asks) orders. It uses `SortedDict` for efficient sorting and matching.
+  - `MatchingEngine`: Responsible for matching buy and sell orders. It takes an `OrderRequest` and tries to match it against existing orders in the `OrderBook`.
+  - `TraderAccountManager`: Manages trader accounts, including balances and registration.
 
-<br>
+- **`database`**: This module handles all database interactions. It includes:
+  - `models`: Defines the database schema for orders, trades, and trader accounts.
+  - `session`: Manages database sessions and connections.
 
-- **`Trade`**: This is a data class that represents a trade that has been executed. It contains information such as:
-  - `trade_id`: A unique identifier for the trade.
-  - `order_id`: The identifier of the order that was matched.
-  - `trader_id`: The identifier of the trader involved in the trade.
-  - `price`: The price at which the trade was executed.
-  - `quantity`: The amount of the asset that was traded.
-  - `timestamp`: The time the trade occurred.
+- **`api`**: This module exposes the functionality of the simulator through a FastAPI web server. It defines the API endpoints for creating traders, submitting orders, and retrieving order book data.
 
-<br>
+- **`websocket`**: This module provides real-time communication capabilities. It includes:
+  - `ConnectionManager`: Manages active WebSocket connections and broadcasts trade updates to all connected clients.
 
-- **`MatchingEngine`**: This class is responsible for matching buy and sell orders.
-  -  It takes an `OrderRequest` and tries to match it against existing orders in the `OrderBook`.
-  -  If a match is found, it generates a `Trade` and updates the `OrderBook`.
-
-- **`WebSocket Trade Feed`**: A WebSocket endpoint (`/ws/trades`) provides a real-time feed of executed trades.
-  - The `ConnectionManager` class manages active WebSocket connections.
-  - When the `MatchingEngine` executes a trade, it broadcasts the trade details to all connected clients.
+- **`analysis`**: This module provides tools for analyzing the order book and trading activity. It includes:
+  - `MetricsCalculator`: Calculates various metrics, such as bid-ask spread and market depth.
 
 ### 🚀 Running the API and Trade Simulation
 The primary way to interact with the simulator is through the FastAPI web server. Helper scripts are provided in the `scripts` directory.
