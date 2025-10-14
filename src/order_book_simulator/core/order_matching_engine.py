@@ -43,8 +43,10 @@ class MatchingEngine:
         # it is added to the order book.
         if order_request.quantity > 0:
             self.order_book.add_order(order_request)
-            if self.metrics_calculator:
-                self.metrics_calculator.take_snapshot(order_request.timestamp)
+
+        # Take snapshot after processing the entire order (at order level)
+        if self.metrics_calculator:
+            self.metrics_calculator.take_snapshot(order_request.timestamp)
 
         return trades
 
@@ -102,8 +104,6 @@ class MatchingEngine:
 
             if maker_order.quantity == 0:
                 self.order_book.remove_order(maker_order)
-                if self.metrics_calculator:
-                    self.metrics_calculator.take_snapshot(maker_order.timestamp)
 
         return trades
 
@@ -159,8 +159,6 @@ class MatchingEngine:
 
             if maker_order.quantity == 0:
                 self.order_book.remove_order(maker_order)
-                if self.metrics_calculator:
-                    self.metrics_calculator.take_snapshot(maker_order.timestamp)
 
         return trades
 
