@@ -13,9 +13,8 @@ This repository contains proof-of-concept implementation of an Order Book Simula
 - [🚀 Running the API and Trade Simulation](#-running-the-api-and-trade-simulation)
 - [📚 API Documentation (Swagger UI)](#-api-documentation-swagger-ui)
 - [🏃‍♀️ Running the Legacy Simulation](#️-running-the-legacy-simulation)
-- [📝 Learning Notes](#-learning-notes)
-  - [Financial Computing Best Practices](#financial-computing-best-practices)
-    - [Using Decimal Instead of Float for Financial Calculations](#using-decimal-instead-of-float-for-financial-calculations)
+- [Motivation and Improvements Over Classroom Approach](#motivation-and-improvements-over-classroom-approach)
+- [Known Limitations](#known-limitations)
 
 ### 📖 Overview
 This project is a proof-of-concept implementation of an order book simulator, focusing on limit orders. It simulates the core functionalities of a financial market order book, including adding and canceling buy and sell limit orders. It also provides a FastAPI interface to interact with the order book.
@@ -60,10 +59,13 @@ This simulator is built around a few core components, each with a specific respo
   - `OrderBook`: Manages the collections of buy (bids) and sell (asks) orders. It uses `SortedDict` for efficient sorting and matching.
   - `MatchingEngine`: Responsible for matching buy and sell orders. It takes an `OrderRequest` and tries to match it against existing orders in the `OrderBook`.
   - `TraderAccountManager`: Manages trader accounts, including balances and registration.
+  - `TradeHistoryTracker`: Tracks and analyzes trade history.
 
 - **`database`**: This module handles all database interactions. It includes:
   - `models`: Defines the database schema for orders, trades, and trader accounts.
   - `session`: Manages database sessions and connections.
+
+- **`main`**: This is the entry point of the application. It initializes the FastAPI app and includes the API router.
 
 - **`api`**: This module exposes the functionality of the simulator through a FastAPI web server. It defines the API endpoints for creating traders, submitting orders, and retrieving order book data.
 
@@ -81,7 +83,6 @@ The primary way to interact with the simulator is through the FastAPI web server
     ```bash
     chmod +x scripts/run.sh
     chmod +x scripts/simulate.sh
-    chmod +x scripts/listen_trades.py
     ```
 
 2.  **Start the Server (Terminal 1):**
@@ -128,51 +129,53 @@ To see the original non-API components work together, you can run the example si
 python -m examples.simulation
 ```
 
----
-
-### 📝 Learning Notes
-
-#### Financial Computing Best Practices
-
-##### Using Decimal Instead of Float for Financial Calculations
-In this project, we use Python's `Decimal` type instead of `float` for all monetary values and calculations. Here's why this is crucial for financial applications:
-
-```python
-# Processing 100,000 transactions with 1 cent fee each
-small_fee = 0.01  # 1 cent fee
-num_transactions = 100000
-
-# Using float - accumulates errors
-float_total = 0
-for _ in range(num_transactions):
-    float_total += small_fee
-
-# Using Decimal - maintains precision
-from decimal import Decimal
-decimal_total = Decimal('0')
-for _ in range(num_transactions):
-    decimal_total += Decimal('0.01')
-
-print(f"Float total fees: ${float_total}")         # 999.9999999999091
-print(f"Decimal total fees: ${decimal_total}")     # 1000.00
-print(f"Difference in cents: {(decimal_total - Decimal(str(float_total))) * 100}")
-```
-
-This example demonstrates why using `Decimal` is crucial in our order book simulator:
-- Small rounding errors accumulate in float calculations
-- With high-volume trading, these errors can become significant
-- Financial calculations require exact precision, especially with money
-- Even a fraction of a cent difference can matter when scaled up
-- Regulatory compliance often requires exact decimal arithmetic
-
-This precision is essential in our order book simulator because:
-- We're handling monetary values
-- Calculations need to be exact for trading
-- Account balances must be precise
-- Financial auditing requires exact arithmetic
-- Multiple transactions should not lead to rounding errors
+> **Note:** The legacy script does not `await` the `ConnectionManager`, but the simulation can still run.
 
 ---
 
-More learning notes will be added as we implement new features and encounter interesting technical concepts.
-This will simulate a series of order requests and print out the resulting trades and the final state of the order book directly in your console.
+### Motivation and Improvements Over Classroom Approach
+
+This project attempts to address several limitations observed in classroom order book simulations:
+
+**Identified Pain Points:**
+- **Lack of Runtime Validation**: The Google Form-based order submission system lacks runtime error handling, allowing students to submit invalid values (e.g., string inputs for numerical fields such as `Price`).
+- **Missing Edge Case Handling**: The original sample code does not implement safeguards to prevent self-trading or handle crossed book scenarios, which are critical considerations in real-world order matching systems.
+- **Post-Processing vs. Real-Time Execution**: The original approach processes a flat file of collected orders after all submissions are complete, rather than handling orders as they stream in. This differs significantly from actual trading systems that process orders immediately upon arrival.
+
+**Implemented Solutions:**
+- **Robust Data Validation**: Leveraged Pydantic models for comprehensive runtime validation, ensuring type safety and data integrity. All order requests are validated at the API level before processing. Key design decisions include:
+  - **UUID for Trader Identification**: Instead of using raw group numbers or sequential IDs, UUIDs are employed to uniquely identify traders. This approach enhances privacy by preventing inference of trader count or registration order, while also ensuring global uniqueness across distributed systems.
+  - **Unix Timestamps**: Timestamps are stored as Unix epoch floats rather than datetime objects for improved serialization efficiency, simplified cross-timezone handling, and seamless JSON compatibility in API responses.
+  - **Mandatory Trader Registration**: Traders must register before submitting orders, mimicking real-world exchange requirements. This enables proper account management, balance tracking, trade attribution, and provides a foundation for implementing credit checks, position limits, and risk management controls that are essential in actual trading systems.
+  - **Order Priority Framework**: Included a `Priority` field (HIGH, MEDIUM, LOW) in the order schema, though it is currently not used in the matching logic. This field is primarily a structural placeholder for extensibility. While most real-world exchanges follow strict price-time priority for fairness and regulatory compliance, some systems do implement prioritization for certain order types (e.g., market orders over limit orders, or cancel requests during high-volume periods). This level of complexity is beyond the scope of the current implementation.
+- **Edge Case Management**: Implemented self-trading prevention logic and crossed book detection with real-time alerts through the `MetricsCalculator` class, mirroring production trading system safeguards.
+- **(Close to)Real-Time Order Processing with WebSocket Support**: Built a FastAPI-based web server that processes orders immediately upon arrival, simulating the continuous operation of actual trading platforms. Orders are matched and executed in real-time rather than batch-processed from flat files. The current WebSocket implementation broadcasts all trades to all connected clients; a production system would require targeted messaging to send trader-specific events (order confirmations, fills, cancellations) only to the relevant participants for improved efficiency and privacy.
+- **Production-Inspired Architecture**: Designed with separation of concerns and modular components including order matching, account management, database persistence, and real-time trade broadcasting. While not fully production-ready (would require API deployment to public endpoints, managed database services, enhanced WebSocket infrastructure, and a dedicated frontend UI), this implementation demonstrates industry-standard design patterns and best practices.
+
+---
+
+### Known Limitations
+
+While this simulator addresses some pain points from traditional classroom approaches, it remains a proof-of-concept with several limitations:
+
+**Technical Limitations:**
+- **Local Deployment Only**: The API runs locally and is not deployed to a public endpoint, limiting accessibility for distributed teams or remote collaboration.
+- **SQLite Database**: Uses SQLite for simplicity, which is not suitable for production workloads. A production system would require managed database services (PostgreSQL, MySQL, or specialized time-series databases) with proper replication, backup, and high-availability configurations.
+- **Basic WebSocket Implementation**: Currently broadcasts all trades to all connected clients rather than implementing targeted, trader-specific messaging channels. Lacks authentication, session management, and reconnection handling.
+- **No Frontend UI**: Interaction is limited to API endpoints and command-line scripts. A production system would benefit from a dedicated web interface for order submission, market visualization, and portfolio management.
+- **Single-Threaded Processing**: The current implementation processes orders sequentially. High-frequency trading systems require concurrent processing, message queues, and sophisticated load balancing.
+
+**Feature Limitations:**
+- **Limit Orders Only**: Does not support other order types such as market orders, stop-loss orders, iceberg orders, or fill-or-kill orders commonly found in real exchanges.
+- **No Order Cancellation/Modification**: While the architecture supports it, explicit endpoints for order cancellation or modification are not fully implemented.
+- **Simplified Fee Structure**: Does not implement maker/taker fees, tiered fee schedules, or rebate programs typical of modern exchanges.
+- **Basic Risk Management**: Lacks sophisticated risk controls such as circuit breakers, position limits per trader, maximum order size validation, or margin requirements.
+- **No Market Data Feeds**: Does not provide historical tick data, OHLC (Open-High-Low-Close) aggregations, or market depth snapshots that traders rely on for analysis.
+- **Unused Priority Field**: The `Priority` field exists in the schema but is not utilized in matching logic, as discussed above.
+
+**Scalability and Performance:**
+- **No Load Testing**: The system has not been stress-tested under high-volume conditions or with thousands of concurrent orders.
+- **Lack of Monitoring**: Does not include observability tools, metrics dashboards, or alerting systems that would be essential for operating a production service.
+- **No Disaster Recovery**: Lacks backup strategies, failover mechanisms, or disaster recovery procedures.
+
+These limitations represent opportunities for future enhancement and learning, making this project an educational foundation rather than a production-ready trading platform.
