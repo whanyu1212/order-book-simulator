@@ -13,8 +13,8 @@ This repository contains proof-of-concept implementation of an Order Book Simula
 - [🚀 Running the API and Trade Simulation](#-running-the-api-and-trade-simulation)
 - [📚 API Documentation (Swagger UI)](#-api-documentation-swagger-ui)
 - [🏃‍♀️ Running the Legacy Simulation](#️-running-the-legacy-simulation)
-- [Motivation and Improvements Over Classroom Approach](#motivation-and-improvements-over-classroom-approach)
-- [Known Limitations](#known-limitations)
+- [💡 Motivation and Improvements Over Classroom Approach](#-motivation-and-improvements-over-classroom-approach)
+- [⚠️ Known Limitations](#️-known-limitations)
 
 ### 📖 Overview
 This project is a proof-of-concept implementation of an order book simulator, focusing on limit orders. It simulates the core functionalities of a financial market order book, including adding and canceling buy and sell limit orders. It also provides a FastAPI interface to interact with the order book.
@@ -133,7 +133,7 @@ python -m examples.simulation
 
 ---
 
-### Motivation and Improvements Over Classroom Approach
+### 💡 Motivation and Improvements Over Classroom Approach
 
 This project attempts to address several limitations observed in classroom order book simulations:
 
@@ -154,7 +154,7 @@ This project attempts to address several limitations observed in classroom order
 
 ---
 
-### Known Limitations
+### ⚠️ Known Limitations
 
 While this simulator addresses some pain points from traditional classroom approaches, it remains a proof-of-concept with several limitations:
 
