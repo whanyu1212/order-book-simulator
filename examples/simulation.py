@@ -1,17 +1,22 @@
+import asyncio
 from uuid import uuid4
-from collections import deque
-from sortedcontainers import SortedDict
 from order_book_simulator.config import OrderRequest, Side, Priority
 from order_book_simulator.core import OrderBook, MatchingEngine
+from order_book_simulator.websocket import ConnectionManager
+from order_book_simulator.analysis.metrics import MetricsCalculator
 from rich import print
-from rich.table import Table
 from rich.json import JSON
 
 
 if __name__ == "__main__":
     # === 1. Setup === #
     order_book = OrderBook()
-    matching_engine = MatchingEngine(order_book)
+    connection_manager = ConnectionManager()
+    loop = asyncio.new_event_loop()
+    metrics_calculator = MetricsCalculator(order_book, tick_size=0.01)
+    matching_engine = MatchingEngine(
+        order_book, connection_manager, loop, metrics_calculator
+    )
 
     # === 2. Pre-populate the Order Book with some resting MAKER orders === #
     print("[bold cyan]--- Populating Initial Order Book ---[/bold cyan]")
