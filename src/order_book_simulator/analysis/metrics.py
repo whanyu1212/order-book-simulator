@@ -17,6 +17,7 @@ class MetricsCalculator:
         self.spread_bps = []
         self.depth_dollars = []
         self.imbalance = []
+        self.crossed_book_events = []  # Store crossed book events
 
     def take_snapshot(self, timestamp: float) -> None:
         """a snapshot of the current order book state
@@ -32,6 +33,22 @@ class MetricsCalculator:
         # some runtime error handling
         if best_bid is None or best_ask is None:
             return
+
+        # --- Check for Crossed Book ---
+        if best_bid >= best_ask:
+            crossed_event = {
+                "timestamp": timestamp,
+                "best_bid": best_bid,
+                "best_ask": best_ask,
+            }
+            self.crossed_book_events.append(crossed_event)
+
+            console.print(
+                f"\n[bold red]⚠️  CROSSED BOOK DETECTED at timestamp {timestamp}![/bold red]"
+            )
+            console.print(
+                f"[dark_orange]  Best Bid: ${best_bid:.2f} >= Best Ask: ${best_ask:.2f}[/dark_orange]"
+            )
 
         # --- A. Bid-Ask Spread Calculation ---
         spread_dollars = best_ask - best_bid
@@ -111,6 +128,19 @@ class MetricsCalculator:
             tw_avg_imbalance = avg_imbalance
 
         console.print("--- Final Metrics ---", style="bold blue")
+
+        # Report crossed book occurrences with details
+        if self.crossed_book_events:
+            console.print(
+                f"\n[bold red]⚠️  Total Crossed Book Occurrences: {len(self.crossed_book_events)}[/bold red]"
+            )
+            console.print("\n[bold red]Crossed Book Events:[/bold red]")
+            for i, event in enumerate(self.crossed_book_events, 1):
+                console.print(f"\n  [bold]Event {i}:[/bold]")
+                console.print(f"    [blue]Timestamp:[/blue] {event['timestamp']}")
+                console.print(f"    [blue]Best Bid:[/blue] ${event['best_bid']:.2f}")
+                console.print(f"    [blue]Best Ask:[/blue] ${event['best_ask']:.2f}")
+
         console.print("\n[bold cyan]Simple Average (Arithmetic Mean):[/bold cyan]")
         console.print(
             f"  Simple Avg Bid-Ask Spread (in Ticks): [bold green]{avg_spread_ticks:.4f}[/bold green]"
@@ -148,4 +178,5 @@ class MetricsCalculator:
             "tw_avg_depth_dollars": tw_avg_depth_dollars,
             "avg_imbalance": avg_imbalance,
             "tw_avg_imbalance": tw_avg_imbalance,
+            "crossed_book_events": self.crossed_book_events,
         }
